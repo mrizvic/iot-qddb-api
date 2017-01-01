@@ -1,0 +1,32 @@
+{
+  "name": "qddb-sql",
+  "version": "0.8.0",
+  "description": "Quick and dirty RESTful IoT database with API",
+  "main": "qddb-sql.js",
+  "dependencies": {
+    "body-parser": "^1.15.2",
+    "console-stamp": "~0.1.6",
+    "express": "~4.13.0",
+    "mysql": "~2.5.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "none"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mrizvic/js-qddb-sql.git"
+  },
+  "keywords": [
+    "restful",
+    "key",
+    "value",
+    "iot",
+    "database"
+  ],
+  "author": "Marko Rizvic",
+  "license": "None",
+  "bugs": {
+    "url": "https://github.com/mrizvic/js-qddb-sql/issues"
+  }
+}

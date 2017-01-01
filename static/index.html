@@ -1,0 +1,341 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>QDDB graph</title>
+
+        <link href="css/base.css" rel="stylesheet">
+        <link href="css/style.css" rel="stylesheet">
+
+        <script src="js/dygraph-combined.js"></script>
+        <script src="js/jquery-2.0.3.min.js"></script>
+        <style type="text/css">
+
+        .line {
+            visibility: hidden;
+            background-color: #777777;
+            position: absolute;
+            pointer-events: none;  /* let mouse events fall through to the chart */
+        }
+        .yline {
+            width: 100%;
+            height: 1px;
+        }
+        .xline {
+            /*height: 100%;*/
+            width: 1px;
+        }
+
+        .dygraph-axis-label-y1 { display: none; }
+
+        </style>
+
+    </head>
+    <body style="color: #000000; background-color: #ffffff">
+
+    <div id="container">
+    </div>
+
+        <script>
+
+function getParameterByName(name, url) {
+    if (!url) {
+        url = window.location.href;
+    }
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+    results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
+function uniqueCharacters(input) {
+    var str=input;
+    var uniql="";
+    for (var x=0;x<str.length;x++) {
+        if(uniql.indexOf(str.charAt(x))==-1) {
+            uniql += str[x];  
+        }
+    }
+    return uniql;  
+}
+
+function brightness(input) {
+    // TOLE NE DELA V CHROMU MEDTEM, KO JE DELALO V FIREFOXU...
+    // var div = document.createElement('div'), m;
+    // var rgb = [];
+    // div.style.color = input;
+    // m = getComputedStyle(div).color.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
+    // console.log(m);
+    // if( m) rgb = [m[1],m[2],m[3]];
+    // else throw new Erro("Colour "+input+" could not be parsed.");
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(input);
+    var rgb = [parseInt(result[1], 16),parseInt(result[2], 16),parseInt(result[3], 16)];
+    return Math.round(((parseInt(rgb[0]) * 299) + (parseInt(rgb[1]) * 587) + (parseInt(rgb[2]) * 114)) /1000);
+}
+
+
+var lochref = window.location.href;
+var apikey = getParameterByName("apikey") 
+var sid = getParameterByName("sid");
+var fid = getParameterByName("fid");
+
+// if parameter not found in URL
+// else strip possible duplicate characters
+if (typeof(fid) == 'object') { fid="1"; } else { fid = uniqueCharacters(fid); }
+var fidlen = fid.length;
+
+var limit = getParameterByName("limit");
+// if parameter not found in URL
+if (typeof(limit) == 'object') { limit = ""; }
+
+// graph color
+var icolor = getParameterByName("color");
+// background color
+var ibgcolor = getParameterByName("bgcolor");
+// text color
+var ifgcolor = getParameterByName("fgcolor");
+
+var color, bgcolor, fgcolor;
+
+var width = getParameterByName("width");
+var height = getParameterByName("height");
+
+
+
+/*
+zanimive barve:
+bgcolor=0c1021&fgcolor=aeaeae&color=61ce3c - blackboard
+bgcolor=ffffff&fgcolor=000000&color=aa0000 - casualgreen
+bgcolor=2a2a2a&fgcolor=8b8b8b&color=ff9900 - jaffalight
+bgcolor=000000&fgcolor=ffffff&color=ff9900 - jaffadark
+bgcolor=ffffff&fgcolor=000000&color=006633 - casualred
+bgcolor=ffffff&fgcolor=000000&color=6699cc - casualblue
+*/
+
+// theme sets colors
+var theme = getParameterByName("theme");
+if (typeof(theme) == 'object') { theme = 'casualgreen'; }
+
+switch (theme) {
+    // case 'lightjaffa':      color='#ff9900'; bgcolor='#2a2a2a'; fgcolor='#8b8b8b'; break;
+    // case 'termgreen':       color='#a6e22e'; bgcolor='#272822'; fgcolor='#f8f8f8'; break;
+    case 'casualred':       color='#aa0000'; bgcolor='#ffffff'; fgcolor='#000000'; break;
+    case 'casualgreen':     color='#006633'; bgcolor='#ffffff'; fgcolor='#000000'; break;
+    case 'casualblue':      color='#6699cc'; bgcolor='#ffffff'; fgcolor='#000000'; break;
+    case 'jaffagold':       color='#ffb654'; bgcolor='#404040'; fgcolor='#dedede'; break;
+    case 'jaffalight':      color='#ff9900'; bgcolor='#2a2a2a'; fgcolor='#dfe2e9'; break;
+    case 'jaffadark':       color='#ff9900'; bgcolor='#000000'; fgcolor='#ffffff'; break;
+    case 'blackboard':      color='#61ce3c'; bgcolor='#0c1021'; fgcolor='#aeaeae'; break;
+    case 'termgreen':       color='#acdb74'; bgcolor='#272822'; fgcolor='#f8f8f8'; break;
+    case 'termyellow':      color='#e6d174'; bgcolor='#272822'; fgcolor='#f8f8f8'; break;
+    case 'termred':         color='#da2731'; bgcolor='#272822'; fgcolor='#f8f8f8'; break;
+    case 'dmzgreen':        color='#8fb78f'; bgcolor='#404040'; fgcolor='#dedede'; break;
+    case 'dmzyellow':       color='#ffffa0'; bgcolor='#404040'; fgcolor='#dedede'; break;
+    case 'dmzblue':         color='#5680ff'; bgcolor='#404040'; fgcolor='#dedede'; break;
+    case 'dmzred':          color='#ff2020'; bgcolor='#404040'; fgcolor='#dedede'; break;
+    case 'dmzgrey':         color='#dedede'; bgcolor='#404040'; fgcolor='#dedede'; break;
+    case 'sunblue':         color='#518bd7'; bgcolor='#fdf6e3'; fgcolor='#708284'; break;
+    case 'sunred':          color='#cb4b15'; bgcolor='#fdf6e3'; fgcolor='#708284'; break;
+    // default: color='#aa0000'; bgcolor='#ffffff'; fgcolor='#000000'; break; //casualgreen
+    default: break;
+}
+
+
+// allow specific override
+if (typeof(icolor) != 'object') { color = '#' + icolor; }
+if (typeof(ibgcolor) != 'object') { bgcolor = '#' + ibgcolor; }
+if (typeof(ifgcolor) != 'object') { fgcolor = '#' + ifgcolor; }
+
+if (typeof(width) == 'object') { width = '98%'; } else { width = width + "px"; }
+if (typeof(height) == 'object') { height = '300'; }
+
+// determine brightness and therefore legend border and shadow color
+var boxShadowColor;
+var borderColor;
+
+if (brightness(bgcolor) > 125) {
+    boxShadowColor = "#000000";
+    borderColor = "#000000";
+} else {
+    boxShadowColor = color;
+    borderColor = color;
+}
+
+
+
+// tole bi blo boljs v document.ready
+$('body').css('background-color',bgcolor);
+document.title = sid;
+
+var data_t;
+
+// graph variables
+var graphData = [];
+var graphUpdating = true;
+var graphMaxPoints = 600;
+var graphColorArray = [color];
+var graphLabels = [];
+var graphCounter = 0;
+var graphArray = [];
+
+var blockRedraw = false;
+var initialized = false;
+
+// izmed spodnjih dveh spremenljivk je lahko samo ena true, sicer dobimo warning
+var bool_animatedZooms = false;
+var bool_showRangeSelector = true;
+
+var baseURL = window.location.protocol + '//' + window.location.hostname + (window.location.port ? ':' + window.location.port : '');
+var fetchURL = baseURL + '/fetch/'+apikey+'/'+sid+'/'+limit;
+var fetchData  = $.get(fetchURL , function(data) { data_t = data; } );
+
+var grafIDX = 0;
+
+
+fetchData.done( function () {
+
+    // REVERSAMO, DA BO GRAF IZ LEVE V DESNO
+    // NAJ SE NA CLIENTSIDE TO IZVAJA, NE NA SERVERJU
+    data_t = data_t.reverse();
+
+    // EXTRACTAMO PRVI ENTRY IN POGLEDAMO VSE KEYE
+    var x = data_t[0];
+    var keyz = Object.keys(x);
+
+    var ts;
+    var dataz;
+
+    // LOOPAMO CEZ VSE USERJEVE KEYE (fid) PRI CEMER NITI NE VEMO KOL JIH JE NITI NE VEMO IMEN - A NI TO KUL! :)
+    for (var j=0; j<fidlen; j++) {
+        var fieldnum = parseInt(fid.charAt(j))+1;
+        var tempArray = [];
+        var field = keyz[fieldnum];
+        // console.log("delamo field " + field);
+
+        graphLabels = [];
+        graphLabels.push('timestamp');
+        graphLabels.push(field);
+
+        // LOOPAMO CEZ CELO TABELO IN POBIRAMO TIMESTAMP TER TRENUTNI fid
+        for (var i=0; i<data_t.length; i++) {
+            // CONVERTAMO DATETIME V OBJEKT Date
+            ts = new Date (data_t[i]['timestamp']);
+            dataz = parseFloat(data_t[i][ field ]);
+            tempArray.push([ts,dataz]);
+        }
+
+
+        // FINTA DA DOSEZEMO OZNACBE Y OSI NA DESNI STRANI GRAFA
+        var obj = new Object();
+        obj[field] = {'axis':'y2'} ;
+        makeGraph2(grafIDX, tempArray, obj, field);
+        grafIDX++;
+    }
+
+    $("#container").append("<div class=\"line xline\" style=\"top: 0px; left: 1px; visibility: hidden; height: "+(height*grafIDX)+"px;\"></div>")
+ 
+});
+
+var makeGraph2 = function(grafIDX, tempArray, graphSeries, seriesName) {
+    var $graphHTML = "<div id=\"graphdiv"+grafIDX+"\" style=\"color: "+fgcolor+"; background-color:"+bgcolor+"; width: "+width+"; height: "+height+"px; padding: 1px;\"></div>";
+    $("#container").append($graphHTML);
+
+    var gTemp = new Dygraph(
+        document.getElementById('graphdiv'+grafIDX),
+        tempArray,
+        {
+            title: seriesName.toUpperCase(),
+            animatedZooms: bool_animatedZooms,
+            axisLabelColor: fgcolor,
+            colors: graphColorArray,
+            drawHighlightPointCallback: myDrawPoint,
+            fillGraph: true,
+            fillAlpha: 0.5,
+            logscale: false, 
+            labels: graphLabels.slice(),
+            labelsSeparateLines: true,
+            labelsDivWidth: '150',
+            labelsDivStyles: {
+                'backgroundColor': bgcolor,
+                'textAlign': 'left',
+                'padding': '4px',
+                'border': '1px solid ' + borderColor,
+                'borderRadius': '10px',
+                'boxShadow': '4px 4px 4px ' + boxShadowColor,
+                'color': fgcolor
+            },
+            rightGap: 20,
+            stackedGraph: false,
+            strokeBorderWidth: 0,
+            strokeWidth: 0.75,
+            legend: 'follow',
+            showRangeSelector: bool_showRangeSelector,
+            series: graphSeries ,
+            axes: {
+                y: {
+                    drawGrid: true,
+                    independentTicks: false
+                },
+                y2: {
+                    drawGrid: false,
+                    independentTicks: true
+                }
+            },
+
+            interactionModel: Dygraph.defaultInteractionModel,
+            highlightCallback: function(event, x, points, row, seriesName) {
+                for (var j = 0; j < fidlen; j++) {
+                    graphArray[j].setSelection(row);
+                    $(".xline").css('visibility','visible');
+                    $(".xline").css('left',points[0].canvasx+'px');
+
+                }
+            },
+
+            unhighlightCallback: function(event) {
+                for (var j = 0; j < fidlen; j++) {
+                    graphArray[j].clearSelection();
+                    $(".xline").css('visibility','hidden');
+                }
+            },
+
+            drawCallback: function(me, initial) {
+                $(".xline").css('visibility','hidden');
+                if (blockRedraw || initial) return;
+                blockRedraw = true;
+                var range = me.xAxisRange();
+                // var yrange = me.yAxisRange();
+                for (var j = 0; j < fidlen; j++) {
+                    if (graphArray[j] == me) continue;
+                        graphArray[j].updateOptions( {
+                        dateWindow: range,
+                        // valueRange: yrange
+                    } );
+                }
+                blockRedraw = false;
+              },
+
+        }
+    );
+
+    graphArray.push(gTemp);
+
+}
+
+var myDrawPoint = function(g, series, ctx, cx, cy, color, radius) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, 2 * Math.PI, false);
+    ctx.fillStyle = color;
+    ctx.fill();
+};
+
+
+        </script>
+
+    </body>
+</html>
+
