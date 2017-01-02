@@ -2,33 +2,30 @@
 
 ## Language
 Im writing this in Slovenian language because its initial release and will be anounced in Slovenian technical forum https://s5tech.net/ So this version is release candidate. Im looking for volunteer to write this README in English :)
+*Read this in other languages: [Slovenian](README-SI.md)
 
-## Ime
-Internet of things quick and dirty database. Ime izvira iz projekta https://github.com/mrizvic/js-qddb . K temu sem dodal shranjevanje podatkov v bazo MySQL ter izpostavil WEB API klice s katerimi v bazo lahko shranjujemo vec vrednosti naenkrat za posamezen senzor ali napravo. Dodana je tudi HTML/CSS/JS koda s katero iz MySQL baze pridobimo vrednosti za doloceno obdobje ter jih prikazemo na grafu. 
+## Project name
+Internet of things quick and dirty database. This name is derived from my other project https://github.com/mrizvic/js-qddb . This time I implemented data persistence with MySQL and exposed WEB API interface for storing and retrieving multiple datasets at once. This project also includes HTML/CSS/JS code which is used to fetch historic data from database and plot multiple graphs at once to visualize data.
 
-## Namen
-V okviru IoT postavitev senzorjev ponavadi merimo neke fizikalne kolicine (temperatura, vlaga, napetost, svetloba, glasnost, ...) katere zelimo shraniti v bazo za kasnejso obdelavo. V ta namen nam je na voljo kar nekaj spletnih servisov. Le-ti so brezplacni ali placljivi. V obeh primerih pa imajo skupni imenovalec - svoje podatke oziroma telemetrijo posiljamo na internet. To pa ni vedno dobrodoslo. Zaradi tega je nastal projekt IOT QDDB - quick and dirty database za IoT. Program ponuja WEB API vmesnik preko katerega lahko kreiramo t.i. stream za nek senzor v katerega potem periodicno shranjujemo vrednosti in nenazadnje vrednosti prikazujemo na grafu za razlicna casovna obdobja. 
+## What is it
+In the process of setting up IoT sensors we usually measure physical quantities (temperature, humidity, voltage, brightness, loudness...). Most of the time the sensors are measuring and pushing telemetry data to some storage for later analysis. FOr this purpose there are quite few public web services of which some are free to use or not. In both cases our sensors need to push data to some third party storage. As this is not always welcome I wrote myself this IoT QDDB software that offers HTTP RESTful API interface through which you can create so-called stream for each sensor which will periodically store telemetry data and ultimately those values can be shown on graph for different periods of time.
 
-## Zahteve
-Navodila so pisana za namestitev iot-qddb-api na Raspberry Pi.
-Sicer bi moralo delovati na kateremkoli linux sistemu, ki so sposobni poganjati mysql, nodejs ter program, ki skrbi za delovanje iot-qddb-api programa v ozadju. Sam za ta namen uporabljam supervisord.
+## Requirements
+This tutorial is written for setting up on Raspberry Pi's popular debian based distro. However it is nothing special and in general it SHOULD work on any popular Linux distro. All you need are some basic skills of running and managing software packages. Basic knowledge of TCPIP is also very welcome. Basically for running this project you need mysql, nodejs and a software which can manipulate foreground process and run it in background as daemon. I use supervisord on Linux.
 
-Za namestitev je zazeljeno tudi poznavanje TCPIP protokolnega sklada ter poznavanje okolja Linux. Torej kaj je IP, port, kaksen IP je 127.0.0.1, kaj je HTTP, namescanje in zaganjanje programov v Linuxu.
+## Installation
 
-## Namestitev
-
-### Programski paketi
+### Required packages
 ```
 apt-get install curl mysql-server nodejs npm supervisor
 ```
 
-### Podatkovna baza MySQL
-Med instalacijo MySQL nas setup program vprasa kaksno root geslo zelimo nastaviti. Za potrebe pisanaja dokumentacije sem root geslo nastavil na `mysqlROOTgeslo`
-
-Kreiramo novo mysql bazo za nase potrebe:
+### MySQL setup
+During installation of mysql package we are asked to define root password. For the purpose of this tutorial I entered `mysqlROOTgeslo`.
+After installation is complete we can create new user and database for storing our IoT data.
 ```
 pi@raspberrypi:~ $ mysql -u root -p
-Enter password: mysqlROOTgeslo <- se ne izpisuje
+Enter password: mysqlROOTgeslo <- this is not echoed back to terminal, just type it in and hit enter
 Welcome to the MySQL monitor.  Commands end with ; or \g.
 Your MySQL connection id is 44
 Server version: 5.5.53-0+deb8u1 (Debian)
@@ -56,7 +53,7 @@ Query OK, 0 rows affected (0.01 sec)
 << pritisni CTRL+C >>
 ```
 
-### Namestitev iot-qddb-api programa
+### Installing iot-qddb-api package
 ```
 pi@raspberrypi:~ $ git clone https://github.com/mrizvic/iot-qddb-api.git
 
@@ -75,17 +72,18 @@ var dbConfig = {
 };
 
 module.exports.dbConfig = dbConfig;
-<< pritisni CTRL+D >>
+<< hit CTRL+D >>
 EOF
 ```
 
-### Zagon iot-qddb-api programa
-#### Rocno
+### Running iot-qddb-api
+#### Manually in foreground
+This is useful for debugging and observing whats happening.
 ```
-pi@raspberrypi:~/iot-qddb-api $ APP_MODE=dev APP_HOST=127.0.0.1 APP_PORT=8008 APP_PUBDIR=static nodejs iot-qddb-api.js
+pi@raspberrypi:~/iot-qddb-api $ APP_MODE=prod APP_HOST=127.0.0.1 APP_PORT=8008 APP_PUBDIR=static nodejs iot-qddb-api.js
 ```
 
-#### Samodejno ob ponovnem zagonu
+#### Automatically at system startup
 ```
 pi@raspberrypi:~/iot-qddb-api $ sudo cp supervisor-iot-qddb-api.conf /etc/supervisor/conf.d/iot-qddb-api.conf
 pi@raspberrypi:~/iot-qddb-api $ sudo supervisorctl 'reread'
@@ -94,66 +92,70 @@ pi@raspberrypi:~/iot-qddb-api $ sudo supervisorctl 'start iot-qddb-api'
 pi@raspberrypi:~/iot-qddb-api $ sudo supervisorctl 'status'
 ```
 
-## Shranjevanje podatkov v bazo
+## Saving telemetry data
 
-### Avtentikacijski kljuc
-Trenutna implementacija je taksna, da si avtentikacijski kljuc izmislimo sami. Za boljsi obcutek si predstavljajmo, da je to uporabnisko ime pod katerim bodo shranjene vrednosti iz senzorjev. Zmislimo si torej string, ki naj ne bo predolg. Za potrebe pisanja dokumentacije sem si zmislil api key `iotdemo`.
+### API key
+Current implementation permits user to think of its own api key. For example we can define api key as username which then holds telemetry data from our sensors in separated streams. This is simply a string of reasonable length. For the purpose of this tutorial I used api key `iotdemo`
 
-### Ustvarjanje novega streama
-
-Ko pridobimo avtentikacijski kljuc (apikey) je potrebno ustvariti nov podatkovni tok (stream) v katerega bomo shranjevali vrednosti. Pri tem moramo podati tudi imena polj, ki jih zelimo shranjevati. Za primer vzemimo, da bomo shranjevali podatke o temperaturi in vlagi iz senzorja DHT22. Kreiramo stream z imenom dht22_1 ter podamo argumenta `temp` in `rh` s katerima oznacimo polje za temperaturo ter vlago. Kreiramo lahko do 8 polj. Za primer vzemimo, da ima nas apikey vrednost `iotdemo`
+### Creating new stream
+When we got ourselves api key its time to create new data stream which will hold telemetry data from specific sensor. We need to define new name and specify names of data fields which are used to hold sensoric data. For example lets assume we have DHT22 sensor which will send temperature and humidity. So lets create stream named dht22_1 and specify two fields named  named `temp` and `rh` for data storage. We are allowed to specify maximum 8 fields. So again we assume our api key is `iotdemo` and create new stream.
 
 ```
 curl -s -X POST "http://127.0.0.1:8008/create/iotdemo/dht22_1?temp&rh"
 ```
 
-### Informacije o streamu
+### Stream information
 
-Informacijo o streamu lahko kadarkoli dobimo s klicem
+We can always get stream information by making this call
 ```
-curl -s -X GET "http://127.0.0.1:8008/info/iotdemo/senzor2"
+curl -s -X GET "http://127.0.0.1:8008/info/iotdemo/dht22_1"
 ```
 
-V rezultatu dobimo imena podatkovnih polj, ki smo jih podali ob kreiranju streama:
+Result is in JSON format and holds name of fields in stream called `dht22_1`:
 ```
 [{"result":"temp,rh"}]
 ```
 
-### Periodicno vpisovanje meritev
+### Storing telemetry data
 
-Sedaj, ko imamo stream lahko pricnemo s periodicnim vpisovanjem vrednosti:
+At this point we have new stream so we can begin to periodicaly send data to our database
 
 ```
 curl -s -X POST "http://127.0.0.1:8008/update/iotdemo/dht22_1?temp=22&rh=33"
+(1 minute pause)
 curl -s -X POST "http://127.0.0.1:8008/update/iotdemo/dht22_1?temp=22.5&rh=34"
+(1 minute pause)
 curl -s -X POST "http://127.0.0.1:8008/update/iotdemo/dht22_1?temp=23&rh=34.5"
+(1 minute pause)
 curl -s -X POST "http://127.0.0.1:8008/update/iotdemo/dht22_1?temp=24&rh=35"
+(1 minute pause)
+...
 ```
 
-### Brisanje streama
+### Deleting stream
 
-Stream lahko tudi nepreklicno brisemo oziroma unicimo pri cemer se zbrisejo tudi vsi zapisi
+Stream can be irrevocably deleted which also deletes telemetry data that is hold in that stream
 ```
 curl -X POST http://127.0.0.1:8008/delete/iotdemo/dht22_1
 ```
 
-## Branje podatkov
+## Reading telemetry data
 
-### Branje z izbiro stevila vnosov
+### Read last N records
 
-Zadnji vnos
+Last record
 ```
 curl -s -X GET "http://127.0.0.1:8008/fetch/iotdemo/dht22_1/1"
 ```
 
-Zadnjih sedem vnosov, padajoce glede na cas vpisa
+Last seven records, descending according to timestamp
 ```
 curl -s -X GET "http://127.0.0.1:8008/fetch/iotdemo/dht22_1/7"
 ```
 
-### Branje z izbiro obdobja
+### Reading with specified period
 
-Vnosi v roku zadnjih 10 minut,ur,dni,tednov,mesecev padajoce glede na cas vpisa
+Retrieve records that were stored in last 10 minutes, hours, days, weeks, months. Results are return descending according to timestamp.
 ```
 curl -s -X GET "http://127.0.0.1:8008/fetch/iotdemo/dht22_1/10m"
 curl -s -X GET "http://127.0.0.1:8008/fetch/iotdemo/dht22_1/10h"
@@ -162,67 +164,175 @@ curl -s -X GET "http://127.0.0.1:8008/fetch/iotdemo/dht22_1/10w"
 curl -s -X GET "http://127.0.0.1:8008/fetch/iotdemo/dht22_1/10M"
 ```
 
-Vnosi vpisani med epoch obdobjem 1482836101 in 1482836701 padajoce glede na cas vpisa
+Retrieve records that were stored between epoch 1482836101 and 1482836701. Results are return descending according to timestamp.
 ```
 curl -s -X GET "http://127.0.0.1:8008/fetch/iotdemo/dht22_1/1482836101/1482836701
 ```
 
-## Risanje grafov
+## Data visualisation
 
-URL klic za risanje grafov je naslednji:
+In order to visualise data we stored so far we need to call following URL:
 ```
 http://127.0.0.1:8008/static/?apikey=iotdemo&sid=dht22_1&fid=12&limit=1d
 ```
 
-URL sprejme naslednje parametre:
+URL accepts following parameters:
 
-*apikey = uporabnikov api kljuc
+*apikey = user-specific api key
 
-*sid = ime streama v katerem se nahajajo meritve katere zelimo spraviti na graf
+*sid = stream name which holds telemetry data that we want to visualise
 
-fid = za katera polja zelimo imeti graf. Npr fid=123 narise graf za prva tri polja. Ce zamenjamo vrstni red se zamenja tudi vrstni red grafov, npr: fid=231. (default: fid=1)
+fid = which fields do we want to visualise. For example fid=123 will produce graphs for first three fields in specified stream. Please note that order amtters, for example: fid=231 will draw second field on first graph, third field on sencod graph and first field on third graph (default: fid=1)
 
-*limit = obdobje za katerega zelimo graf. Ce podamo stevilo n (brez suffix znaka) potem dobimo zadnjih n zapisov iz streama glede na timestamp. Ce uporabimo katerega od spodaj nastetih suffixov potem dobimo vrednosti v dolocenem obdobju, npr limit=30h pomeni obdobje 30 ur, limit=4d pomeni 4 dni. Za podrobnosti glej `Branje z izbiro obdobja`. OPOMBA: ne glede na obdobje velja omejitev, da nikoli ne dobimo vec kot 25000 zapisov naenkrat.
+*limit = this specifies period for which we want to visualise data. If limit is numeric only then it will retrieve that number of records and visualise them. If we add suffix to that number then the suffix defines human readable period. For example limit=30h means period of last 30 hours and limit=4d means period of last 4 days. For details refer to `Reading with specified period`. Please note that regardless of defined period number of retrieved records cannot exceed 25000. However this is hardcoded but can be changed.
 
-theme = s tem parametrom poimensko poklicem prednastavljeno barvno shemo. Mozne vrednosti so: `casualgreen`, `casualred`, `casualblue`, `jaffagold`, `jaffalight`, `jaffadark`, `blackboard`, `termgreen`, `termyellow`, `termred`, `dmzgreen`, `dmzyellow`, `dmzblue`, `dmzred`, `dmzgrey`, `sunblue`, `sunred`. OPOMBA: Spodnji trije parametri povozijo nastavitve, ki so znotraj parametra `theme`. (default: `casualgreen`)
+theme = there are predefined color schemes for data visualisation. At the moment the buildin values are `casualgreen`, `casualred`, `casualblue`, `jaffagold`, `jaffalight`, `jaffadark`, `blackboard`, `termgreen`, `termyellow`, `termred`, `dmzgreen`, `dmzyellow`, `dmzblue`, `dmzred`, `dmzgrey`, `sunblue`, `sunred`. Please note that the following three URL parameters can override settings that are used within specific theme. (default: `casualgreen`)
 
-color = barva s katero naj bodo narisane vrednosti na grafu (npr: color=ff0000 ce zelimo rdeco)
+color = which color is used to draw series on graph (color=ff0000 for red)
 
-bgcolor = barva ozadja na grafu (npr: bgcolor=ffffff ce zelimo belo)
+bgcolor = background color (bgcolor=ffffff for white)
 
-fgcolor = barva napisov na oseh X in Y, naslov grafa ter v legendi (npr: fgcolor=000000 ce zelimo crno)
+fgcolor = this color is used for labels X and Y axis, graph title and legend titles (fgcolor=000000 for black)
 
-height = visina grafa v px (default: `300`)
+height = graph height in px (default: `300`)
 
-width = sirina grafa v px (default: `98%`)
+width = graph width v px (default: `98%`)
 
 
-Parametri oznaceni z zvezdico so obvezni. Za ostale so privzete vrednosti napisane v oklepajih.
+Parameters marked with asterisk * are mandatory. Non mandatory parameters have their respective default values written in brackets
 
-## Primeri
+## Examples
 
-Nekaj primerov URL za risanje grafov:
+Some crafted URL for data visualisation:
 ```
 http://127.0.0.1:8008/static/?apikey=iotdemo&sid=dht22_soba&fid=12&limit=5d
 http://127.0.0.1:8008/static/?apikey=iotdemo&sid=dht22_terasa&fid=1&limit=2d&theme=jaffalight
 http://127.0.0.1:8008/static/?apikey=iotdemo&sid=raspberrypi&fid=123&height=350&limit=8h&theme=blackboard
-http://127.0.0.1:8008/static/?apikey=iotdemo&sid=streznik&fid=123&height=350&limit=8h&theme=blackboard&color=00ffff
+http://127.0.0.1:8008/static/?apikey=iotdemo&sid=server&fid=123&height=350&limit=8h&theme=blackboard&color=00ffff
 ```
 
-## Navigacija po grafu
+## Graph navigation
 
-Ko je graf izrisan se lahko posamezne vrednosti odcitajo s postavitvijo kurzorja na graf. Legenda sledi premikanju kurzorja. Na grafu imamo moznost zoom-in efekta in sicer na dva nacina. Prvi je, da s klikom vlecemo po grafu. S tem oznacimo del katerega zelimo povecati. Drugi nacin je, da premikamo drsnik, ki se nahaja spodaj pod vsakim grafom. Na zacetku je okno drsnika postavljeno cez cel graf. Ce robove okna povlecemo proti notranjosti se na grafu prikazejo le tiste vrednosti, ki so v nastavljeno casovnem oknu. Tako nastavljen drsnik pod grafom lahko vlecemo levo ali desno. S tem se pomikamo po grafu naprej in nazaj. Ucinek zoom-out dosezemo z dvoklikom na graf ali s pomikom stranic drsnika skrajno levo in skrajno desno.
+When graph rendering is complete we can highlight the point which we want to read. The legend will follow cursor movement. We can zoom-in in two ways. First way is to click and drag an area in the graf. After releasing click button graph will zoom into that area. Second way is to drag border of sliding window beneath each graph. In the beginning the window is spanned across the whole area. If we shring the borders on the left and the right side of sliding window the graph begins to zoom into spanned window - timeslot. When we have shrunked sliding window we can drag it left and right along the graph to review data series in details. Zoom-out effect can be achieved by double clicking anywhere on graph or by extending window size back to maximum.
 
 
 ## FAQ
 
-1Q) pri klicu /update/iotdemo/senzor?temper=11.1 dobim sporocilo o napaki `ERROR: BAD_FIELD`
+1Q) When I make HTTP call `POST /update/iotdemo/sensor1?temper=11.1` it returns error message stating `ERROR: BAD_FIELD`
 
-1A) preveri imena polj za senzor1 s klicem: GET /info/iotdemo/senzor1
+1A) check field names for sensor1 by making HTTP call `GET /info/iotdemo/senzor1`
 
 
 
-2Q) pri klicu GET /info/iotdemo/senzor1 dobim kot rezultat `{}`
+2Q) When calling `GET /info/iotdemo/sensor1` the result is empty JSON array `{}`
 
-2A) apikey iotdemo nima podatkov o tabeli senzor1
+2A) There is no data for apikey `iotdemo` and stream `sensor1`
 
+
+
+
+
+<!--
+
+Zadnji vnos
+GET /fetch/$APIKEY/$SID/1
+
+Zadnjih 10 vnosov padajoce
+GET /fetch/$APIKEY/$SID/10
+
+Vsi vnosi v roku zadnjih 10 minut,ur,dni,tednov,mesecev padajoce
+GET /fetch/$APIKEY/$SID/10m
+GET /fetch/$APIKEY/$SID/10h
+GET /fetch/$APIKEY/$SID/10d
+GET /fetch/$APIKEY/$SID/10w
+GET /fetch/$APIKEY/$SID/10M
+
+Prvih 10 vnosov narascajoce
+GET /fetch/$APIKEY/$SID/-10
+
+Vsi vnosi med epoch 1482836101 in 1482836701 narascajoce
+GET /fetch/$APIKEY/$SID/1482836101/1482836701
+
+
+
+Brisi vse vnose
+DELETE /apikey_v1/aa
+Brisi prvih 10 vnosov
+DELETE /apikey_v1/aa/10
+Brisi zadnjih 10 vnosov
+DELETE /apikey_v1/aa/-10
+Brisi vse vnose med epoch 200 in 300
+DELETE /apikey_v1/aa/200/300
+
+Vrne vse streame, ki jih ima nek api
+GET /streams/apikey
+
+Shrani vrednosti
+GET  /update/apikey/stream?f1=&f2=&f3=...
+POST /update/apikey/stream?f1=&f2=&f3=...
+
+Generira nov api key in nov stream v katerega lahko shranjujes 3 vrednosti
+POST /create/apikey/stream/3
+
+curl -s -X POST "http://127.0.0.1:8008/create/iotdemo/senzor1?temp&vlaga&svetloba&napetost"
+
+
+
+
+Brise podatke 
+POST /delete/apikey/stream
+
+Nastavi retention - TODO, not implemented
+POST /retention/apikey/stream/days
+
+CREATE TABLE `test` (
+	`id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+	`timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
+	`f1` varchar(10) DEFAULT NULL,
+	`f2` varchar(10) DEFAULT NULL,
+	`f3` varchar(10) DEFAULT NULL,
+	PRIMARY KEY (`id`,`timestamp`),
+	UNIQUE KEY `id_UNIQUE` (`id`),
+	KEY `timestamp` (`timestamp`)
+) ENGINE=InnoDB;
+
+
+/*
+CREATE TABLE `apikey_sid1` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
+  `f1` varchar(10) NULL,
+  `f2` varchar(10) NULL,
+  `f3` varchar(10) NULL,
+  `f4` varchar(10) NULL,
+  `f5` varchar(10) NULL,
+  `f6` varchar(10) NULL,
+  `f7` varchar(10) NULL,
+  `f8` varchar(10) NULL,
+  PRIMARY KEY (`id`,`timestamp`),
+  UNIQUE KEY `id_UNIQUE` (`id`),
+  INDEX `timestamp` (`timestamp`)
+) ENGINE=InnoDB;
+*/
+
+
+
+CREATE DEFINER = CURRENT_USER TRIGGER `qddb1`.`new_table_AFTER_INSERT` AFTER INSERT ON `new_table` FOR EACH ROW
+BEGIN
+	SET @newid = NEW.id;
+    IF (@newid % 10 == 0) THEN
+		DELETE FROM `new_table` WHERE `new_table`.timestamp < DATE_SUB(NOW(), INTERVAL 10 SECONDS);
+	END IF;
+END
+
+DELIMITER $$
+CREATE DEFINER = CURRENT_USER TRIGGER `38EABF4E69_100492_AFTER_INSERT` AFTER INSERT ON `38EABF4E69_100492` FOR EACH ROW
+BEGIN
+	SET @newid = NEW.id;
+	IF (@newid % 10 == 0) THEN
+		DELETE FROM `38EABF4E69_100492` WHERE timestamp < DATE_SUB(NOW(), INTERVAL 10 SECONDS);
+	END IF;
+END$$
+DELIMITER ;
+
+ -->
