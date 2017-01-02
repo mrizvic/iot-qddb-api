@@ -1,4 +1,4 @@
-# IoT QDDB - Od senzorja do grafa
+# IoT QDDB - IoT quick and dirty database is RESTful API for storing and retrieving telemetry data from your sensors as well as data visualisation 
 
 ## Language
 Im writing this in Slovenian language because its initial release and will be anounced in Slovenian technical forum https://s5tech.net/ So this version is release candidate. Im looking for volunteer to write this README in English :)
