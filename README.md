@@ -1,8 +1,7 @@
 # IoT QDDB - IoT quick and dirty database is RESTful API for storing and retrieving telemetry data from your sensors as well as data visualisation 
 
 ## Language
-Im writing this in Slovenian language because its initial release and will be anounced in Slovenian technical forum https://s5tech.net/ So this version is release candidate. Im looking for volunteer to write this README in English :)
-*Read this in other languages: [Slovenian](README-SI.md)
+Read this in other languages: [Slovenian](README-SI.md)
 
 ## Project name
 Internet of things quick and dirty database. This name is derived from my other project https://github.com/mrizvic/js-qddb . This time I implemented data persistence with MySQL and exposed WEB API interface for storing and retrieving multiple datasets at once. This project also includes HTML/CSS/JS code which is used to fetch historic data from database and plot multiple graphs at once to visualize data.
