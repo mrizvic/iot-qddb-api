@@ -3,6 +3,10 @@
 ## Language
 Read this in other languages: [Slovenian](README-SI.md)
 
+## Visualisation demo
+[![Youtube](https://img.youtube.com/vi/OvDfQiCRgYg/0.jpg)](https://www.youtube.com/watch?v=OvDfQiCRgYg)
+
+
 ## Project name
 Internet of things quick and dirty database. This name is derived from my other project https://github.com/mrizvic/js-qddb . This time I implemented data persistence with MySQL and exposed WEB API interface for storing and retrieving multiple datasets at once. This project also includes HTML/CSS/JS code which is used to fetch historic data from database and plot multiple graphs at once to visualize data.
 
