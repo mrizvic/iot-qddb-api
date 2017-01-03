@@ -3,6 +3,9 @@
 ## Language
 Im writing this in Slovenian language because its initial release and will be anounced in Slovenian technical forum https://s5tech.net/ So this version is release candidate. Im looking for volunteer to write this README in English :)
 
+## Visualisation demo
+[![Youtube](https://img.youtube.com/vi/OvDfQiCRgYg/0.jpg)](https://www.youtube.com/watch?v=OvDfQiCRgYg)
+
 ## Ime
 Internet of things quick and dirty database. Ime izvira iz projekta https://github.com/mrizvic/js-qddb . K temu sem dodal shranjevanje podatkov v bazo MySQL ter izpostavil WEB API klice s katerimi v bazo lahko shranjujemo vec vrednosti naenkrat za posamezen senzor ali napravo. Dodana je tudi HTML/CSS/JS koda s katero iz MySQL baze pridobimo vrednosti za doloceno obdobje ter jih prikazemo na grafu. 
 
